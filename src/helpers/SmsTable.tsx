@@ -19,10 +19,11 @@ import {
 import DeleteIcon from "@mui/icons-material/Delete";
 
 interface SmsData {
-  id: string; // Document ID
+  id: string;
   sender: string;
   message: string;
   timestamp: number;
+  simNumber?: string;
 }
 
 const SmsTable: React.FC = () => {
@@ -33,6 +34,7 @@ const SmsTable: React.FC = () => {
     message: "",
     severity: "success",
   });
+  const [filterSimNumber, setFilterSimNumber] = useState<string>("");
 
   useEffect(() => {
     fetchSmsData();
@@ -80,9 +82,31 @@ const SmsTable: React.FC = () => {
     }
   };
 
+  const filteredSmsData = smsData.filter((sms) =>
+    sms.simNumber?.toLowerCase().includes(filterSimNumber.toLowerCase())
+  );
+
   return (
     <div style={{ padding: "20px", maxWidth: "900px", margin: "auto" }}>
       <h2>SMS Messages</h2>
+
+      <div style={{ marginBottom: "20px" }}>
+        <input
+          type="text"
+          placeholder="Filter by SIM number"
+          value={filterSimNumber}
+          onChange={(e) => setFilterSimNumber(e.target.value)}
+          style={{
+            padding: "8px",
+            width: "100%",
+            maxWidth: "300px",
+            borderRadius: "4px",
+            border: "1px solid #ccc",
+            color: "#fff",
+          }}
+        />
+      </div>
+
       {loading ? (
         <CircularProgress />
       ) : (
@@ -93,6 +117,7 @@ const SmsTable: React.FC = () => {
                 <TableCell><strong>Sender</strong></TableCell>
                 <TableCell><strong>Message</strong></TableCell>
                 <TableCell><strong>Timestamp</strong></TableCell>
+                <TableCell><strong>SIM Number</strong></TableCell>
                 <TableCell>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                     <strong>Action</strong>
@@ -112,16 +137,17 @@ const SmsTable: React.FC = () => {
               </TableRow>
             </TableHead>
             <TableBody>
-              {smsData.length === 0 ? (
+              {filteredSmsData.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={4} align="center">No Messages Found</TableCell>
+                  <TableCell colSpan={5} align="center">No Messages Found</TableCell>
                 </TableRow>
               ) : (
-                smsData.map((sms) => (
+                filteredSmsData.map((sms) => (
                   <TableRow key={sms.id}>
                     <TableCell>{sms.sender}</TableCell>
                     <TableCell style={{ maxWidth: "400px", wordWrap: "break-word" }}>{sms.message}</TableCell>
                     <TableCell>{new Date(sms.timestamp).toLocaleString()}</TableCell>
+                    <TableCell>{sms.simNumber || "N/A"}</TableCell>
                     <TableCell>
                       <Button
                         variant="contained"
@@ -140,9 +166,12 @@ const SmsTable: React.FC = () => {
         </TableContainer>
       )}
 
-      {/* Snackbar for Notifications */}
       <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
-        <Alert onClose={() => setSnackbar({ ...snackbar, open: false })} severity={snackbar.severity} sx={{ width: "100%" }}>
+        <Alert
+          onClose={() => setSnackbar({ ...snackbar, open: false })}
+          severity={snackbar.severity}
+          sx={{ width: "100%" }}
+        >
           {snackbar.message}
         </Alert>
       </Snackbar>
