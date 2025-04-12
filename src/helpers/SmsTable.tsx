@@ -45,8 +45,6 @@ const SmsTable: React.FC = () => {
         id: doc.id,
         ...doc.data(),
       })) as SmsData[];
-      console.log(fetchedData);
-
       setSmsData(fetchedData);
     } catch (error) {
       console.error("Error fetching SMS data:", error);
@@ -67,6 +65,21 @@ const SmsTable: React.FC = () => {
     }
   };
 
+  const deleteAllSms = async () => {
+    try {
+      setLoading(true);
+      const batchDelete = smsData.map((sms) => deleteDoc(doc(db, "messages", sms.id)));
+      await Promise.all(batchDelete);
+      setSmsData([]);
+      setSnackbar({ open: true, message: "All messages deleted successfully", severity: "success" });
+    } catch (error) {
+      console.error("Error deleting all SMS:", error);
+      setSnackbar({ open: true, message: "Failed to delete all messages", severity: "error" });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <div style={{ padding: "20px", maxWidth: "900px", margin: "auto" }}>
       <h2>SMS Messages</h2>
@@ -80,7 +93,22 @@ const SmsTable: React.FC = () => {
                 <TableCell><strong>Sender</strong></TableCell>
                 <TableCell><strong>Message</strong></TableCell>
                 <TableCell><strong>Timestamp</strong></TableCell>
-                <TableCell><strong>Action</strong></TableCell>
+                <TableCell>
+                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+                    <strong>Action</strong>
+                    {smsData.length > 0 && (
+                      <Button
+                        variant="outlined"
+                        color="error"
+                        size="small"
+                        onClick={deleteAllSms}
+                        style={{ marginLeft: "10px" }}
+                      >
+                        Delete All
+                      </Button>
+                    )}
+                  </div>
+                </TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
@@ -92,9 +120,7 @@ const SmsTable: React.FC = () => {
                 smsData.map((sms) => (
                   <TableRow key={sms.id}>
                     <TableCell>{sms.sender}</TableCell>
-                    <TableCell style={{ maxWidth: "400px", wordWrap: "break-word" }}>
-                      {sms.message}
-                    </TableCell>
+                    <TableCell style={{ maxWidth: "400px", wordWrap: "break-word" }}>{sms.message}</TableCell>
                     <TableCell>{new Date(sms.timestamp).toLocaleString()}</TableCell>
                     <TableCell>
                       <Button
