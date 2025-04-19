@@ -2,21 +2,14 @@ import React, { useEffect, useState } from "react";
 import { collection, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "@/config/firebaseConfig";
 
-// MUI Components
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
-  Paper,
-  Button,
-  CircularProgress,
-  Snackbar,
-  Alert,
-} from "@mui/material";
-import DeleteIcon from "@mui/icons-material/Delete";
+// Ant Design Components
+import Table from "antd/lib/table";
+import Button from "antd/lib/button";
+import Input from "antd/lib/input";
+import Popconfirm from "antd/lib/popconfirm";
+import Spin from "antd/lib/spin";
+import message from "antd/lib/message";
+import DeleteOutlined from "@ant-design/icons/lib/icons/DeleteOutlined";
 
 interface SmsData {
   id: string;
@@ -29,11 +22,6 @@ interface SmsData {
 const SmsTable: React.FC = () => {
   const [smsData, setSmsData] = useState<SmsData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
-  const [snackbar, setSnackbar] = useState<{ open: boolean; message: string; severity: "success" | "error" }>({
-    open: false,
-    message: "",
-    severity: "success",
-  });
   const [filterSimNumber, setFilterSimNumber] = useState<string>("");
 
   useEffect(() => {
@@ -48,9 +36,10 @@ const SmsTable: React.FC = () => {
         ...doc.data(),
       })) as SmsData[];
       setSmsData(fetchedData);
+      message.success("Data fetched successfully");
     } catch (error) {
       console.error("Error fetching SMS data:", error);
-      setSnackbar({ open: true, message: "Failed to fetch data", severity: "error" });
+      message.error("Failed to fetch data");
     } finally {
       setLoading(false);
     }
@@ -60,10 +49,10 @@ const SmsTable: React.FC = () => {
     try {
       await deleteDoc(doc(db, "messages", id));
       setSmsData((prevData) => prevData.filter((sms) => sms.id !== id));
-      setSnackbar({ open: true, message: "Message deleted successfully", severity: "success" });
+      message.success("Message deleted successfully");
     } catch (error) {
       console.error("Error deleting SMS:", error);
-      setSnackbar({ open: true, message: "Failed to delete message", severity: "error" });
+      message.error("Failed to delete message");
     }
   };
 
@@ -73,10 +62,10 @@ const SmsTable: React.FC = () => {
       const batchDelete = smsData.map((sms) => deleteDoc(doc(db, "messages", sms.id)));
       await Promise.all(batchDelete);
       setSmsData([]);
-      setSnackbar({ open: true, message: "All messages deleted successfully", severity: "success" });
+      message.success("All messages deleted successfully");
     } catch (error) {
       console.error("Error deleting all SMS:", error);
-      setSnackbar({ open: true, message: "Failed to delete all messages", severity: "error" });
+      message.error("Failed to delete all messages");
     } finally {
       setLoading(false);
     }
@@ -91,90 +80,68 @@ const SmsTable: React.FC = () => {
       <h2>SMS Messages</h2>
 
       <div style={{ marginBottom: "20px" }}>
-        <input
-          type="text"
+        <Input
           placeholder="Filter by SIM number"
           value={filterSimNumber}
           onChange={(e) => setFilterSimNumber(e.target.value)}
-          style={{
-            padding: "8px",
-            width: "100%",
-            maxWidth: "300px",
-            borderRadius: "4px",
-            border: "1px solid #ccc",
-            color: "#fff",
-          }}
+          style={{ marginBottom: 20, maxWidth: 300 }}
         />
       </div>
 
-      {loading ? (
-        <CircularProgress />
-      ) : (
-        <TableContainer component={Paper}>
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell><strong>Sender</strong></TableCell>
-                <TableCell><strong>Message</strong></TableCell>
-                <TableCell><strong>Timestamp</strong></TableCell>
-                <TableCell><strong>SIM Number</strong></TableCell>
-                <TableCell>
-                  <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                    <strong>Action</strong>
-                    {smsData.length > 0 && (
-                      <Button
-                        variant="outlined"
-                        color="error"
-                        size="small"
-                        onClick={deleteAllSms}
-                        style={{ marginLeft: "10px" }}
-                      >
-                        Delete All
-                      </Button>
-                    )}
-                  </div>
-                </TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {filteredSmsData.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={5} align="center">No Messages Found</TableCell>
-                </TableRow>
-              ) : (
-                filteredSmsData.map((sms) => (
-                  <TableRow key={sms.id}>
-                    <TableCell>{sms.sender}</TableCell>
-                    <TableCell style={{ maxWidth: "400px", wordWrap: "break-word" }}>{sms.message}</TableCell>
-                    <TableCell>{new Date(sms.timestamp).toLocaleString()}</TableCell>
-                    <TableCell>{sms.simNumber || "N/A"}</TableCell>
-                    <TableCell>
-                      <Button
-                        variant="contained"
-                        color="error"
-                        startIcon={<DeleteIcon />}
-                        onClick={() => deleteSms(sms.id)}
-                      >
-                        Delete
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </TableContainer>
+      {loading ? <Spin /> : (
+        <Table
+          dataSource={filteredSmsData}
+          rowKey="id"
+          loading={loading}
+          columns={[
+            {
+              title: "Sender",
+              dataIndex: "sender",
+              key: "sender",
+            },
+            {
+              title: "Message",
+              dataIndex: "message",
+              key: "message",
+              render: (text) => <div style={{ wordWrap: "break-word", maxWidth: 400 }}>{text}</div>,
+            },
+            {
+              title: "Timestamp",
+              dataIndex: "timestamp",
+              key: "timestamp",
+              render: (timestamp) => new Date(timestamp).toLocaleString(),
+            },
+            {
+              title: "SIM Number",
+              dataIndex: "simNumber",
+              key: "simNumber",
+              render: (simNumber) => simNumber || "N/A",
+            },
+            {
+              title: "Action",
+              key: "action",
+              render: (_, record) => (
+                <Popconfirm
+                  title="Are you sure you want to delete this message?"
+                  onConfirm={() => deleteSms(record.id)}
+                >
+                  <Button danger icon={<DeleteOutlined />}>Delete</Button>
+                </Popconfirm>
+              ),
+            },
+          ]}
+          footer={() =>
+            smsData.length > 0 && (
+              <Popconfirm
+                title="Are you sure you want to delete all messages?"
+                onConfirm={deleteAllSms}
+              >
+                <Button danger>Delete All</Button>
+              </Popconfirm>
+            )
+          }
+        />
       )}
-
-      <Snackbar open={snackbar.open} autoHideDuration={3000} onClose={() => setSnackbar({ ...snackbar, open: false })}>
-        <Alert
-          onClose={() => setSnackbar({ ...snackbar, open: false })}
-          severity={snackbar.severity}
-          sx={{ width: "100%" }}
-        >
-          {snackbar.message}
-        </Alert>
-      </Snackbar>
     </div>
   );
 };
