@@ -1,6 +1,8 @@
 import Head from "next/head";
 import SmsTable from "@/helpers/SmsTable";
-
+import { Layout, Typography } from "antd";
+const { Header, Content, Footer } = Layout;
+const { Title } = Typography;
 
 export default function Home() {
   return (
@@ -11,10 +13,21 @@ export default function Home() {
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <link rel="icon" href="/favicon.ico" />
       </Head>
-      <div>
-        <h1 style={{ textAlign: "center" }}>Firestore SMS Data</h1>
-        <SmsTable />
-      </div>
+      <Layout style={{ minHeight: "100vh" }}>
+        <Header style={{ background: "#001529" }}>
+          <Title level={3} style={{ color: "#fff", margin: 0, lineHeight: "64px" }}>
+            SMS Archive Admin
+          </Title>
+        </Header>
+        <Content style={{ padding: "24px" }}>
+          <div style={{ background: "#fff", borderRadius: 8, boxShadow: "0 2px 8px rgba(0,0,0,0.1)" }}>
+            <SmsTable />
+          </div>
+        </Content>
+        <Footer style={{ textAlign: "center" }}>
+          SMS Archive Admin ©{new Date().getFullYear()} Created with ❤️
+        </Footer>
+      </Layout>
     </>
   );
 }

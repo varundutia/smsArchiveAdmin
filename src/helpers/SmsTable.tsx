@@ -23,10 +23,18 @@ const SmsTable: React.FC = () => {
   const [smsData, setSmsData] = useState<SmsData[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [filterSimNumber, setFilterSimNumber] = useState<string>("");
+  const [globalSearch, setGlobalSearch] = useState<string>("");
 
   useEffect(() => {
     fetchSmsData();
   }, []);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      setGlobalSearch(filterSimNumber);
+    }, 300);
+    return () => clearTimeout(timeout);
+  }, [filterSimNumber]);
 
   const fetchSmsData = async () => {
     try {
@@ -72,75 +80,93 @@ const SmsTable: React.FC = () => {
   };
 
   const filteredSmsData = smsData.filter((sms) =>
-    sms.simNumber?.toLowerCase().includes(filterSimNumber.toLowerCase())
+    Object.values(sms)
+      .join(" ")
+      .toLowerCase()
+      .includes(globalSearch.toLowerCase())
   );
 
   return (
-    <div style={{ padding: "20px", maxWidth: "900px", margin: "auto" }}>
+    <div style={{ padding: "40px", maxWidth: "1000px", margin: "auto", background: "#fff", borderRadius: 8, boxShadow: "0 2px 8px rgba(0, 0, 0, 0.1)" }}>
       <h2>SMS Messages</h2>
 
       <div style={{ marginBottom: "20px" }}>
         <Input
-          placeholder="Filter by SIM number"
+          placeholder="Search in table..."
           value={filterSimNumber}
           onChange={(e) => setFilterSimNumber(e.target.value)}
           style={{ marginBottom: 20, maxWidth: 300 }}
         />
       </div>
 
+      {smsData.length > 0 && (
+        <Popconfirm
+          title="Are you sure you want to delete all messages?"
+          onConfirm={deleteAllSms}
+        >
+          <Button danger style={{ marginBottom: 20 }}>Delete All</Button>
+        </Popconfirm>
+      )}
+
       {loading ? <Spin /> : (
-        <Table
-          dataSource={filteredSmsData}
-          rowKey="id"
-          loading={loading}
-          columns={[
-            {
-              title: "Sender",
-              dataIndex: "sender",
-              key: "sender",
-            },
-            {
-              title: "Message",
-              dataIndex: "message",
-              key: "message",
-              render: (text) => <div style={{ wordWrap: "break-word", maxWidth: 400 }}>{text}</div>,
-            },
-            {
-              title: "Timestamp",
-              dataIndex: "timestamp",
-              key: "timestamp",
-              render: (timestamp) => new Date(timestamp).toLocaleString(),
-            },
-            {
-              title: "SIM Number",
-              dataIndex: "simNumber",
-              key: "simNumber",
-              render: (simNumber) => simNumber || "N/A",
-            },
-            {
-              title: "Action",
-              key: "action",
-              render: (_, record) => (
-                <Popconfirm
-                  title="Are you sure you want to delete this message?"
-                  onConfirm={() => deleteSms(record.id)}
-                >
-                  <Button danger icon={<DeleteOutlined />}>Delete</Button>
-                </Popconfirm>
-              ),
-            },
-          ]}
-          footer={() =>
-            smsData.length > 0 && (
-              <Popconfirm
-                title="Are you sure you want to delete all messages?"
-                onConfirm={deleteAllSms}
-              >
-                <Button danger>Delete All</Button>
-              </Popconfirm>
-            )
-          }
-        />
+        <div style={{ overflowX: "auto" }}>
+          <Table
+            dataSource={filteredSmsData}
+            rowKey="id"
+            loading={loading}
+            pagination={{ pageSize: 10, showSizeChanger: true }}
+            bordered
+            size="middle"
+            scroll={{ x: true }}
+            rowSelection={{
+              type: "checkbox",
+            }}
+            columns={[
+              {
+                title: "Sender",
+                dataIndex: "sender",
+                key: "sender",
+                filters: [...new Set(smsData.map((sms) => sms.sender))].map((sender) => ({ text: sender, value: sender })),
+                onFilter: (value, record) => record.sender === value,
+                showSorterTooltip: false,
+              },
+              {
+                title: "Message",
+                dataIndex: "message",
+                key: "message",
+                render: (text) => <div style={{ wordWrap: "break-word", maxWidth: 400 }}>{text}</div>,
+              },
+              {
+                title: "Timestamp",
+                dataIndex: "timestamp",
+                key: "timestamp",
+                sorter: (a, b) => b.timestamp - a.timestamp,
+                render: (timestamp) => new Date(timestamp).toLocaleString(),
+                showSorterTooltip: false,
+              },
+              {
+                title: "SIM Number",
+                dataIndex: "simNumber",
+                key: "simNumber",
+                filters: [...new Set(smsData.map((sms) => sms.simNumber || "N/A"))].map((sim) => ({ text: sim, value: sim })),
+                onFilter: (value, record) => (record.simNumber || "N/A") === value,
+                showSorterTooltip: false,
+              },
+              {
+                title: "Action",
+                key: "action",
+                render: (_, record) => (
+                  <Popconfirm
+                    title="Are you sure you want to delete this message?"
+                    onConfirm={() => deleteSms(record.id)}
+                  >
+                    <Button danger icon={<DeleteOutlined />}>Delete</Button>
+                  </Popconfirm>
+                ),
+              },
+            ]}
+          />
+        </div>
       )}
     </div>
   );
