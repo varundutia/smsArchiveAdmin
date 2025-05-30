@@ -1,6 +1,6 @@
 import Head from "next/head";
 import SmsTable from "@/helpers/SmsTable";
-import { Layout, Typography } from "antd";
+import { Layout, Typography } from "antd/lib";
 const { Header, Content, Footer } = Layout;
 const { Title } = Typography;
 
